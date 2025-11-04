@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes" // Still needed to escape non-description fields
+	"flag"
 	"fmt"
 	"html"
 	"log"
@@ -49,15 +50,17 @@ type Dish struct {
 }
 
 func main() {
+	outputFile := flag.String("o", "index.html", "Output filename (default: index.html)")
+	flag.Parse()
+
 	jkuMensa := fetchJKUMensa()
 	khgMenu, err := fetchKHGMenu()
 	if err != nil {
 		log.Fatalf("Error fetching KHG menu: %v", err)
 	}
 
-	// write week html with tabs for all days
 	htmlOutput := renderMenusForWeekTabs(*jkuMensa, *khgMenu)
-	if err := os.WriteFile("menu_for_week_tabs.html", []byte(htmlOutput), 0644); err != nil {
+	if err := os.WriteFile(*outputFile, []byte(htmlOutput), 0644); err != nil {
 		log.Fatalf("Error writing week tabs HTML to file: %v", err)
 	}
 }
