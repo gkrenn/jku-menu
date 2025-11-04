@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JKU Mensa & KHG Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #222c36;
+            --accent-color: #f59e42;
+            --neutral-dark: #222c36;
+            --neutral-light: #f5f7fa;
+            --neutral-bg: #ffffff;
+            --card-shadow: 0 4px 24px rgba(34,44,54,0.08);
+            --radius: 12px;
+            --font-heading: 'Playfair Display', serif;
+            --font-body: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+        html {
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            font-family: var(--font-body);
+            background: var(--neutral-light);
+            margin: 0;
+            padding: 0;
+            color: var(--neutral-dark);
+            line-height: 1.6;
+            letter-spacing: 0.01em;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            gap: 0.5rem;
+        }
+        .tab {
+            background: var(--neutral-bg);
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            font-family: var(--font-body);
+            font-weight: 600;
+            color: var(--neutral-dark);
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            border-bottom: none;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: var(--card-shadow);
+        }
+        .tab:hover, .tab:focus {
+            background: var(--accent-color);
+            color: var(--neutral-bg);
+            outline: none;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            justify-content: center;
+            margin: 0 auto;
+            max-width: 1100px;
+            padding: 2.5rem 1rem 1.5rem 1rem;
+        }
+        .menu-card {
+            background: var(--neutral-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--card-shadow);
+            padding: 2.5rem 2rem 2rem 2rem;
+            width: 100%;
+            min-width: 0;
+        }
+        .menu-title {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.2rem;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+        .day-title {
+            font-size: 1.25rem;
+            color: var(--neutral-dark);
+            margin-bottom: 2rem;
+            text-align: center;
+            font-family: var(--font-body);
+        }
+        .category {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            font-family: var(--font-body);
+        }
+        ul {
+            padding-left: 1.2rem;
+            margin-bottom: 1.2rem;
+        }
+        li {
+            margin-bottom: 0.7rem;
+            font-size: 1.05rem;
+            color: var(--neutral-dark);
+            font-family: var(--font-body);
+        }
+        .price {
+            color: var(--accent-color);
+            font-weight: 600;
+            margin-left: 0.5rem;
+            font-size: 1rem;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 2rem 0 1.5rem 0;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        button, .tab {
+            border-radius: var(--radius);
+            transition: all 0.3s ease;
+        }
+        button {
+            background: var(--accent-color);
+            color: var(--neutral-bg);
+            border: none;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            font-family: var(--font-body);
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+        }
+        button:hover, button:focus {
+            background: var(--primary-color);
+            color: #fff;
+            outline: none;
+        }
+        input, textarea, select {
+            font-family: var(--font-body);
+            font-size: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid #e0e0e0;
+            padding: 0.7rem 1rem;
+            margin-bottom: 1.2rem;
+            background: var(--neutral-bg);
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                padding: 1.5rem 0.5rem 1rem 0.5rem;
+            }
+            .menu-card {
+                width: 100%;
+                padding: 2rem 1rem 1.5rem 1rem;
+            }
+        }
+        @media (max-width: 600px) {
+            .tabs {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            .tab {
+                padding: 0.5rem 1rem;
+                font-size: 1rem;
+            }
+            .container {
+                padding: 1rem 0.2rem 0.5rem 0.2rem;
+            }
+        }
+    </style>
+    <script>
+        function showTab(dayIdx) {
+            var tabs = document.querySelectorAll('.tab');
+            var contents = document.querySelectorAll('.tab-content');
+            tabs.forEach(function(tab, i) {
+                tab.classList.toggle('active', i === dayIdx);
+            });
+            contents.forEach(function(content, i) {
+                content.classList.toggle('active', i === dayIdx);
+            });
+        }
+        window.onload = function() {
+            var today = new Date().getDay();
+            // JS: 1=Monday, ..., 5=Friday; 0=Sunday, 6=Saturday
+            var tabIdx = (today >= 1 && today <= 5) ? today - 1 : 0;
+            showTab(tabIdx);
+        };
+    </script>
+</head>
+<body>
+    <div class="tabs">
+        {{range $i, $day := .Days}}
+            <div class="tab" onclick="showTab({{$i}})">{{$day.Name}}</div>
+        {{end}}
+    </div>
+    {{range $i, $day := .Days}}
+    <div class="tab-content" id="tab{{$i}}">
+        <div class="container">
+            <div class="menu-card">
+                <div class="menu-title">JKU Mensa</div>
+                <div class="day-title">Menu for {{$day.Name}}</div>
+                {{if $day.JKUMensa.Categories}}
+                    {{range $day.JKUMensa.Categories}}
+                        <div class="category">{{.Name}}</div>
+                        <ul>
+                            {{range .Dishes}}
+                                <li>{{.Title}} <span class="price">€ {{.Price}}</span></li>
+                            {{end}}
+                        </ul>
+                        <hr>
+                    {{end}}
+                {{else}}
+                    <div><strong>No menu data found for {{$day.Name}}.</strong></div>
+                {{end}}
+            </div>
+            <div class="menu-card">
+                <div class="menu-title">KHG</div>
+                <div class="day-title">Menu for {{$day.Name}}</div>
+                {{if $day.KHG.Categories}}
+                    {{range $day.KHG.Categories}}
+                        <div class="category">{{.Name}}</div>
+                        <ul>
+                            {{range .Dishes}}
+                                <li>{{.Title}} <span class="price">€ {{.Price}}</span></li>
+                            {{end}}
+                        </ul>
+                        <hr>
+                    {{end}}
+                {{else}}
+                    <div><strong>No menu data found for {{$day.Name}}.</strong></div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+</body>
+</html>
