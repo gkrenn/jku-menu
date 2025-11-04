@@ -34,11 +34,12 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Generate index.html
         run: |
-          ./build/creator -o index.html
+          mkdir -p public
+          ./build/creator -o public/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'index.html'
+          path: 'public'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
