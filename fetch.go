@@ -24,70 +24,7 @@ func fetchJKUMensa() (MenuPlan, error) {
 	query := `query Location($locationUri: String!, $weekDay: String!) {
 	  nodeByUri(uri: $locationUri) {
 		... on Location {
-		  databaseId
-		  featuredImage {
-			node {
-			  altText
-			  caption(format: RENDERED)
-			  sourceUrl
-			}
-		  }
-		  locationData {
-			address {
-			  city
-			  country
-			  line {
-				one
-				two
-			  }
-			  state
-			  street {
-				name
-				number
-			  }
-			  zipCode
-			}
-			contact {
-			  emailAddress
-			  phoneNumber
-			}
-			contactPerson {
-			  emailAddress
-			  firstname
-			  lastname
-			  phoneNumber
-			  position
-			}
-			delegateId
-			menuplanAltInformation
-			menuplanAvailable
-			gallery {
-			  nodes {
-				altText
-				caption(format: RENDERED)
-				sourceUrl
-			  }
-			}
-			noticeAccess
-			noticeDirection
-			noticeLocation
-		  }
-		  locationServices {
-			nodes {
-			  locationServiceData {
-				iconslug
-			  }
-			  name
-			}
-		  }
-		  locationStates {
-			nodes {
-			  name
-			  slug
-			}
-		  }
 		  menuplanCurrentWeek
-		  menuplanNextWeek
 		  openingHour(day: $weekDay) {
 			nowDate
 			nowWeekDay
@@ -97,42 +34,8 @@ func fetchJKUMensa() (MenuPlan, error) {
 			closed
 			reopen
 		  }
-		  openingHours {
-			monday
-			tuesday
-			thursday
-			wednesday
-			friday
-			saturday
-			sunday
-			notice
-			exceptions
-		  }
 		  title
 		  uri
-		  seo {
-			canonicalUrl
-			description
-			focusKeywords
-			robots
-			title
-			openGraph {
-			  alternateLocales
-			  description
-			  image {
-				height
-				secureUrl
-				type
-				url
-				width
-			  }
-			  title
-			  updatedTime
-			  url
-			  siteName
-			  type
-			}
-		  }
 		}
 	  }
 	}`
@@ -148,41 +51,27 @@ func fetchJKUMensa() (MenuPlan, error) {
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("Error marshaling request payload: %w", err)
+		return MenuPlan{}, fmt.Errorf("error marshaling request payload: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("Error creating HTTP request: %w", err)
+		return MenuPlan{}, fmt.Errorf("error creating HTTP request: %w", err)
 	}
 
-	req.Header.Set("accept", "*/*")
-	req.Header.Set("accept-language", "en-US,en;q=0.8")
-	req.Header.Set("cache-control", "no-cache")
-	req.Header.Set("content-type", "application/json")
-	req.Header.Set("origin", "https://www.mensen.at")
-	req.Header.Set("pragma", "no-cache")
-	req.Header.Set("priority", "u=1, i")
-	req.Header.Set("referer", "https://www.mensen.at/")
-	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Brave";v="142", "Not_A Brand";v="99"`)
-	req.Header.Set("sec-ch-ua-mobile", "?0")
-	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
-	req.Header.Set("sec-fetch-dest", "empty")
-	req.Header.Set("sec-fetch-mode", "cors")
-	req.Header.Set("sec-fetch-site", "same-site")
-	req.Header.Set("sec-gpc", "1")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("Error sending HTTP request: %w", err)
+		return MenuPlan{}, fmt.Errorf("error sending HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("Error reading response body: %w", err)
+		return MenuPlan{}, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -191,13 +80,13 @@ func fetchJKUMensa() (MenuPlan, error) {
 
 	var apiResponse APIResponse
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return MenuPlan{}, fmt.Errorf("Error unmarshaling outer JSON: %w\nBody: %s", err, string(body))
+		return MenuPlan{}, fmt.Errorf("error unmarshaling outer JSON: %w\nBody: %s", err, string(body))
 	}
 
 	var currentWeekMenu MenuPlan
 	menuString := apiResponse.Data.NodeByUri.MenuplanCurrentWeek
 	if err := json.Unmarshal([]byte(menuString), &currentWeekMenu); err != nil {
-		return MenuPlan{}, fmt.Errorf("Error unmarshaling inner menu JSON: %w\nString was: %s", err, menuString)
+		return MenuPlan{}, fmt.Errorf("error unmarshaling inner menu JSON: %w\nString was: %s", err, menuString)
 	}
 
 	return currentWeekMenu, nil
