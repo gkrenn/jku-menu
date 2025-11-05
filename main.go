@@ -9,7 +9,12 @@ import (
 	"os"
 	"strings"
 	"text/template"
+
+	_ "embed"
 )
+
+//go:embed menu_for_week_tabs.tmpl
+var menuForWeekTabsTemplate string
 
 type GraphQLRequest struct {
 	Query         string    `json:"query"`
@@ -53,13 +58,16 @@ func main() {
 	outputFile := flag.String("o", "index.html", "Output filename (default: index.html)")
 	flag.Parse()
 
-	jkuMensa := fetchJKUMensa()
+	jkuMensa, err := fetchJKUMensa()
+	if err != nil {
+		log.Printf("Error fetching JKU menu: %v", err)
+	}
 	khgMenu, err := fetchKHGMenu()
 	if err != nil {
-		log.Fatalf("Error fetching KHG menu: %v", err)
+		log.Printf("Error fetching KHG menu: %v", err)
 	}
 
-	htmlOutput := renderMenusForWeekTabs(*jkuMensa, *khgMenu)
+	htmlOutput := renderMenusForWeekTabs(jkuMensa, khgMenu)
 	if err := os.WriteFile(*outputFile, []byte(htmlOutput), 0644); err != nil {
 		log.Fatalf("Error writing week tabs HTML to file: %v", err)
 	}
@@ -115,7 +123,7 @@ func renderMenusForWeekTabs(jkuMensa MenuPlan, khgMenu MenuPlan) string {
 	data := map[string]interface{}{
 		"Days": days,
 	}
-	tmpl, err := template.ParseFiles("menu_for_week_tabs.tmpl")
+	tmpl, err := template.New("menu_for_week_tabs").Parse(menuForWeekTabsTemplate)
 	if err != nil {
 		return "<h2>Template error.</h2>"
 	}

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -20,7 +19,7 @@ const (
 	khgMenuURL  = "https://www.dioezese-linz.at/khg/mensa/menueplan"
 )
 
-func fetchJKUMensa() *MenuPlan {
+func fetchJKUMensa() (MenuPlan, error) {
 	apiUrl := jkuMensaURL
 	query := `query Location($locationUri: String!, $weekDay: String!) {
 	  nodeByUri(uri: $locationUri) {
@@ -149,12 +148,12 @@ func fetchJKUMensa() *MenuPlan {
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		log.Fatalf("Error marshaling request payload: %v", err)
+		return MenuPlan{}, fmt.Errorf("Error marshaling request payload: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		log.Fatalf("Error creating HTTP request: %v", err)
+		return MenuPlan{}, fmt.Errorf("Error creating HTTP request: %w", err)
 	}
 
 	req.Header.Set("accept", "*/*")
@@ -177,31 +176,31 @@ func fetchJKUMensa() *MenuPlan {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Error sending HTTP request: %v", err)
+		return MenuPlan{}, fmt.Errorf("Error sending HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		return MenuPlan{}, fmt.Errorf("Error reading response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("API request failed with status: %s\nResponse: %s", resp.Status, string(body))
+		return MenuPlan{}, fmt.Errorf("API request failed with status: %s\nResponse: %s", resp.Status, string(body))
 	}
 
 	var apiResponse APIResponse
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		log.Fatalf("Error unmarshaling outer JSON: %v\nBody: %s", err, string(body))
+		return MenuPlan{}, fmt.Errorf("Error unmarshaling outer JSON: %w\nBody: %s", err, string(body))
 	}
 
 	var currentWeekMenu MenuPlan
 	menuString := apiResponse.Data.NodeByUri.MenuplanCurrentWeek
 	if err := json.Unmarshal([]byte(menuString), &currentWeekMenu); err != nil {
-		log.Fatalf("Error unmarshaling inner menu JSON: %v\nString was: %s", err, menuString)
+		return MenuPlan{}, fmt.Errorf("Error unmarshaling inner menu JSON: %w\nString was: %s", err, menuString)
 	}
 
-	return &currentWeekMenu
+	return currentWeekMenu, nil
 }
 
 // getDayKey converts the German day name to a numeric string key.
@@ -231,21 +230,21 @@ var (
 	reYear = regexp.MustCompile(`(\d{4})`)
 )
 
-func fetchKHGMenu() (*MenuPlan, error) {
+func fetchKHGMenu() (MenuPlan, error) {
 	url := khgMenuURL
 	res, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch URL %s: %w", url, err)
+		return MenuPlan{}, fmt.Errorf("failed to fetch URL %s: %w", url, err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status code: %d", res.StatusCode)
+		return MenuPlan{}, fmt.Errorf("bad status code: %d", res.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse HTML: %w", err)
+		return MenuPlan{}, fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
 	menuPlan := MenuPlan{
@@ -297,5 +296,5 @@ func fetchKHGMenu() (*MenuPlan, error) {
 		}
 	})
 
-	return &menuPlan, nil
+	return menuPlan, nil
 }
