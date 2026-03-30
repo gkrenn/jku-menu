@@ -173,6 +173,12 @@
         .tab-content.active {
             display: block;
         }
+        .week-info {
+            font-size: 0.6em;
+            font-weight: 400;
+            color: #888;
+            font-family: var(--font-body);
+        }
         .fetch-info {
             text-align: center;
             padding: 1.5rem 1rem;
@@ -272,7 +278,7 @@
     <div class="tab-content" id="tab{{$i}}">
         <div class="container">
             <div class="menu-card">
-                <div class="menu-title">JKU Mensa</div>
+                <div class="menu-title">JKU Mensa{{if $.JKUWeekInfo}} <span class="week-info">({{$.JKUWeekInfo}})</span>{{end}}</div>
                 <div class="day-title">Menu for {{$day.Name}}</div>
                 {{if $day.JKUMensa.Categories}}
                     {{range $day.JKUMensa.Categories}}
@@ -289,7 +295,7 @@
                 {{end}}
             </div>
             <div class="menu-card">
-                <div class="menu-title">KHG</div>
+                <div class="menu-title">KHG{{if $.KHGWeekInfo}} <span class="week-info">({{$.KHGWeekInfo}})</span>{{end}}</div>
                 <div class="day-title">Menu for {{$day.Name}}</div>
                 {{if $day.KHG.Categories}}
                     {{range $day.KHG.Categories}}
