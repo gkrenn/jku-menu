@@ -173,6 +173,17 @@
         .tab-content.active {
             display: block;
         }
+        .fetch-info {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #888;
+            font-family: var(--font-body);
+        }
+        .fetch-info p {
+            margin: 0.25rem 0;
+        }
         button, .tab {
             border-radius: var(--radius);
             transition: all 0.3s ease;
@@ -297,5 +308,9 @@
         </div>
     </div>
     {{end}}
+    <footer class="fetch-info">
+        <p>JKU Mensa: {{if .JKUWeekInfo}}Menu for {{.JKUWeekInfo}} &mdash; {{end}}Fetched at {{.JKUFetchedAt}}</p>
+        <p>KHG: {{if .KHGWeekInfo}}Menu for {{.KHGWeekInfo}} &mdash; {{end}}Fetched at {{.KHGFetchedAt}}</p>
+    </footer>
 </body>
 </html>

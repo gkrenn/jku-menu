@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes" // Still needed to escape non-description fields
+	"bytes"
 	"flag"
 	"fmt"
 	"html"
@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 
 	_ "embed"
 )
@@ -33,6 +34,7 @@ type APIResponse struct {
 		NodeByUri struct {
 			Title               string `json:"title"`
 			MenuplanCurrentWeek string `json:"menuplanCurrentWeek"` // This is stringified JSON
+			MenuplanNextWeek    string `json:"menuplanNextWeek"`    // Stringified JSON, may be empty
 		} `json:"nodeByUri"`
 	} `json:"data"`
 }
@@ -56,24 +58,45 @@ type Dish struct {
 
 func main() {
 	outputFile := flag.String("o", "index.html", "Output filename (default: index.html)")
+	dumpRaw := flag.Bool("dump", false, "Dump raw JKU API response to jku_raw_response.json and exit")
 	flag.Parse()
 
-	jkuMensa, err := fetchJKUMensa()
+	if *dumpRaw {
+		raw, err := FetchJKURaw()
+		if err != nil {
+			log.Fatalf("Error fetching raw JKU response: %v", err)
+		}
+		if err := os.WriteFile("jku_raw_response.json", raw, 0644); err != nil {
+			log.Fatalf("Error writing raw response: %v", err)
+		}
+		fmt.Println("Raw JKU API response written to jku_raw_response.json")
+		return
+	}
+
+	jkuCurrentWeek, jkuNextWeek, err := fetchJKUMensa()
+	jkuFetchedAt := time.Now()
 	if err != nil {
 		log.Printf("Error fetching JKU menu: %v", err)
 	}
+
 	khgMenu, err := fetchKHGMenu()
+	khgFetchedAt := time.Now()
 	if err != nil {
 		log.Printf("Error fetching KHG menu: %v", err)
 	}
 
-	htmlOutput := renderMenusForWeekTabs(jkuMensa, khgMenu)
+	jkuMensa := jkuCurrentWeek
+	if time.Now().Weekday() == time.Saturday && len(jkuNextWeek.Menus) > 0 {
+		jkuMensa = jkuNextWeek
+	}
+
+	htmlOutput := renderMenusForWeekTabs(jkuMensa, khgMenu, jkuFetchedAt, khgFetchedAt)
 	if err := os.WriteFile(*outputFile, []byte(htmlOutput), 0644); err != nil {
 		log.Fatalf("Error writing week tabs HTML to file: %v", err)
 	}
 }
 
-func renderMenusForWeekTabs(jkuMensa MenuPlan, khgMenu MenuPlan) string {
+func renderMenusForWeekTabs(jkuMensa MenuPlan, khgMenu MenuPlan, jkuFetchedAt time.Time, khgFetchedAt time.Time) string {
 	type DishView struct {
 		Title string
 		Price string
@@ -121,7 +144,11 @@ func renderMenusForWeekTabs(jkuMensa MenuPlan, khgMenu MenuPlan) string {
 		})
 	}
 	data := map[string]interface{}{
-		"Days": days,
+		"Days":         days,
+		"JKUFetchedAt": jkuFetchedAt.Format("Mon, 02 Jan 2006, 15:04"),
+		"KHGFetchedAt": khgFetchedAt.Format("Mon, 02 Jan 2006, 15:04"),
+		"JKUWeekInfo":  formatWeekInfo(jkuMensa),
+		"KHGWeekInfo":  formatWeekInfo(khgMenu),
 	}
 	tmpl, err := template.New("menu_for_week_tabs").Parse(menuForWeekTabsTemplate)
 	if err != nil {
@@ -136,4 +163,14 @@ func formatTitleForHTML(title string) string {
 	r := strings.NewReplacer("\n", " ")
 	cleaned := r.Replace(title)
 	return strings.TrimSpace(cleaned)
+}
+
+func formatWeekInfo(menu MenuPlan) string {
+	if menu.Week == "" {
+		return ""
+	}
+	if menu.Year > 0 {
+		return fmt.Sprintf("KW %s / %d", menu.Week, menu.Year)
+	}
+	return fmt.Sprintf("KW %s", menu.Week)
 }

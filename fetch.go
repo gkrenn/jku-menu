@@ -19,12 +19,13 @@ const (
 	khgMenuURL  = "https://www.dioezese-linz.at/khg/mensa/menueplan"
 )
 
-func fetchJKUMensa() (MenuPlan, error) {
+func fetchJKUMensa() (MenuPlan, MenuPlan, error) {
 	apiUrl := jkuMensaURL
 	query := `query Location($locationUri: String!, $weekDay: String!) {
 	  nodeByUri(uri: $locationUri) {
 		... on Location {
 		  menuplanCurrentWeek
+		  menuplanNextWeek
 		  openingHour(day: $weekDay) {
 			nowDate
 			nowWeekDay
@@ -51,12 +52,12 @@ func fetchJKUMensa() (MenuPlan, error) {
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("error marshaling request payload: %w", err)
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error marshaling request payload: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("error creating HTTP request: %w", err)
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error creating HTTP request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -65,31 +66,39 @@ func fetchJKUMensa() (MenuPlan, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("error sending HTTP request: %w", err)
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error sending HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return MenuPlan{}, fmt.Errorf("error reading response body: %w", err)
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return MenuPlan{}, fmt.Errorf("API request failed with status: %s\nResponse: %s", resp.Status, string(body))
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("API request failed with status: %s\nResponse: %s", resp.Status, string(body))
 	}
 
 	var apiResponse APIResponse
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return MenuPlan{}, fmt.Errorf("error unmarshaling outer JSON: %w\nBody: %s", err, string(body))
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error unmarshaling outer JSON: %w\nBody: %s", err, string(body))
 	}
 
 	var currentWeekMenu MenuPlan
 	menuString := apiResponse.Data.NodeByUri.MenuplanCurrentWeek
 	if err := json.Unmarshal([]byte(menuString), &currentWeekMenu); err != nil {
-		return MenuPlan{}, fmt.Errorf("error unmarshaling inner menu JSON: %w\nString was: %s", err, menuString)
+		return MenuPlan{}, MenuPlan{}, fmt.Errorf("error unmarshaling inner menu JSON: %w\nString was: %s", err, menuString)
 	}
 
-	return currentWeekMenu, nil
+	var nextWeekMenu MenuPlan
+	nextWeekString := apiResponse.Data.NodeByUri.MenuplanNextWeek
+	if nextWeekString != "" {
+		if err := json.Unmarshal([]byte(nextWeekString), &nextWeekMenu); err != nil {
+			return MenuPlan{}, MenuPlan{}, fmt.Errorf("error unmarshaling next week menu JSON: %w\nString was: %s", err, nextWeekString)
+		}
+	}
+
+	return currentWeekMenu, nextWeekMenu, nil
 }
 
 // getDayKey converts the German day name to a numeric string key.
@@ -186,4 +195,66 @@ func fetchKHGMenu() (MenuPlan, error) {
 	})
 
 	return menuPlan, nil
+}
+
+func FetchJKURaw() ([]byte, error) {
+	query := `query Location($locationUri: String!, $weekDay: String!) {
+	  nodeByUri(uri: $locationUri) {
+		... on Location {
+		  menuplanCurrentWeek
+		  menuplanNextWeek
+		  openingHour(day: $weekDay) {
+			nowDate
+			nowWeekDay
+			status
+			from
+			to
+			closed
+			reopen
+		  }
+		  title
+		  uri
+		}
+	  }
+	}`
+
+	payload := GraphQLRequest{
+		Query: query,
+		Variables: Variables{
+			LocationURI: "standort/mensa-jku/",
+			WeekDay:     "now",
+		},
+		OperationName: "Location",
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request payload: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", jkuMensaURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status: %s\nResponse: %s", resp.Status, string(body))
+	}
+
+	return body, nil
 }
